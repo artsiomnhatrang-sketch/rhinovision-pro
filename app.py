@@ -1,7 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 from PIL import Image, ImageDraw
-import cv2
 import numpy as np
 import io
 import base64
@@ -233,9 +232,21 @@ def transform(img, p):
 
     my -= p["nose_length"] * 0.030 * (yy - cy) * g_full
 
-    mx = np.clip(mx, 0, w - 1).astype(np.float32)
-    my = np.clip(my, 0, h - 1).astype(np.float32)
-    out = cv2.remap(arr, mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+    mx = np.clip(mx, 0, w - 1)
+    my = np.clip(my, 0, h - 1)
+
+    # Bilinear interpolation (replaces cv2.remap)
+    x0 = np.floor(mx).astype(np.int32)
+    y0 = np.floor(my).astype(np.int32)
+    x1 = np.minimum(x0 + 1, w - 1)
+    y1 = np.minimum(y0 + 1, h - 1)
+    wx = (mx - x0)[..., np.newaxis].astype(np.float32)
+    wy = (my - y0)[..., np.newaxis].astype(np.float32)
+
+    out = (arr[y0, x0] * (1 - wx) * (1 - wy)
+         + arr[y0, x1] *      wx  * (1 - wy)
+         + arr[y1, x0] * (1 - wx) *      wy
+         + arr[y1, x1] *      wx  *      wy).astype(np.uint8)
     return Image.fromarray(out)
 
 
