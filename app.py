@@ -1,7 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 from PIL import Image, ImageDraw
-import pillow_heif
 import cv2
 import numpy as np
 import io
@@ -182,7 +181,8 @@ for k, v in {
 
 def load_pil(f):
     if f.name.lower().endswith(".heic"):
-        pillow_heif.register_heif_opener()
+        st.error("HEIC формат не поддерживается. Пожалуйста, конвертируйте фото в JPG или PNG.")
+        st.stop()
     return Image.open(f).convert("RGB")
 
 
@@ -393,7 +393,7 @@ with col_l:
 
     uploaded = st.file_uploader(
         "Загрузить фото (JPG · PNG · HEIC)",
-        type=["jpg", "jpeg", "png", "heic"],
+        type=["jpg", "jpeg", "png"],
         key=f"up_{st.session_state.rc}",
     )
 
