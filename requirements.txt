@@ -1,0 +1,5 @@
+streamlit==1.50.0
+Pillow==11.3.0
+pillow-heif==1.1.1
+opencv-python==4.13.0.90
+numpy==2.0.2
