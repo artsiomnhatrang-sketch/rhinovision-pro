@@ -375,20 +375,6 @@ def build_flux_prompt(params, analysis=None):
     )
 
 
-def _flux_strength(params):
-    """Compute prompt_strength from slider magnitudes. Range: 0.45–0.75."""
-    magnitudes = [
-        abs(params["hump"])          / 50,
-        abs(params["tip_proj"])      / 50,
-        abs(params["nose_width"])    / 50,
-        abs(params["nostril_width"]) / 50,
-        abs(params["tip_angle"])     / 30,
-        abs(params["nose_length"])   / 50,
-    ]
-    avg = sum(magnitudes) / len(magnitudes)
-    return round(0.45 + avg * 0.30, 2)
-
-
 def _read_replicate_output(output):
     """Robustly extract raw image bytes from any Replicate output shape."""
     # Materialise iterators/generators without consuming twice
@@ -441,20 +427,17 @@ def _classify_replicate_error(err_str):
 
 
 def generate_with_replicate(rep_token, img_bytes, params, analysis=None):
-    """Phase 2 — img2img with Replicate FLUX Schnell."""
+    """Phase 2 — text-to-image with Replicate FLUX Schnell."""
     try:
         import replicate as rep_lib
 
         client = rep_lib.Client(api_token=rep_token)
         prompt = build_flux_prompt(params, analysis)
-        strength = _flux_strength(params)
 
         output = client.run(
             "black-forest-labs/flux-schnell",
             input={
                 "prompt": prompt,
-                "image": io.BytesIO(img_bytes),
-                "prompt_strength": strength,
                 "num_outputs": 1,
                 "num_inference_steps": 4,
                 "output_format": "jpg",
