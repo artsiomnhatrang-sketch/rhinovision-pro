@@ -128,7 +128,7 @@ st.markdown("""
     <div class="rv-tagline">Профессиональный симулятор ринопластики · AI-анализ + PIL деформация</div>
   </div>
   <div class="rv-badge">⚡ Gemini AI</div>
-  <div class="rv-version">v4.0 · PIL+NumPy</div>
+  <div class="rv-version">v4.1 · Secrets</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -137,11 +137,19 @@ _DEFAULTS = {
     "orig": None, "orig_bytes": None, "result": None,
     "analysis": None, "rc": 0, "last_name": "",
     "patient_name": "", "annotations": [],
-    "gemini_key": "", "gen_error": None, "analysis_error": None,
+    "gen_error": None, "analysis_error": None,
 }
 for k, v in _DEFAULTS.items():
     if k not in st.session_state:
         st.session_state[k] = v
+
+# ─── Gemini key from Streamlit secrets (never from UI) ────────────────────────
+# st.secrets raises StreamlitSecretNotFoundError locally without secrets.toml,
+# so always wrap in try/except — safe in all environments.
+try:
+    _GEMINI_KEY = st.secrets["GEMINI_API_KEY"]
+except Exception:
+    _GEMINI_KEY = ""
 
 # ─── Image utilities ──────────────────────────────────────────────────────────
 
@@ -541,29 +549,12 @@ with col_l:
                 st.session_state.annotations = []
                 st.rerun()
 
-# ═══════════════════ RIGHT — API key + sliders + actions ═══════════════════════
+# ═══════════════════ RIGHT — sliders + actions ════════════════════════════════
 with col_r:
 
-    # ── Gemini API key ──
-    st.markdown('<div class="rv-card-title">🔑 Gemini API</div>', unsafe_allow_html=True)
-    gemini_input = st.text_input(
-        "Gemini API Key",
-        type="password",
-        value=st.session_state.gemini_key,
-        placeholder="AIza... (aistudio.google.com → Get API Key)",
-        help="Бесплатный ключ: aistudio.google.com → Get API Key",
-        key=f"apikey_{st.session_state.rc}",
-    )
-    st.session_state.gemini_key = gemini_input
-
-    if gemini_input:
-        st.markdown('<div class="rv-status rv-status-ready">⚡ API ключ введён — анализ активен</div>',
-                    unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="rv-status rv-status-nokey">⚠ Введите Gemini API ключ для AI-анализа (необязательно)</div>',
-                    unsafe_allow_html=True)
-
-    st.divider()
+    # ── AI status (read-only, key comes from server secrets) ──
+    if not _GEMINI_KEY:
+        st.warning("⚠️ API ключ не настроен. Обратитесь к администратору.")
 
     # ── Rhinoplasty sliders ──
     st.markdown('<div class="rv-card-title">⚙️ Параметры ринопластики</div>', unsafe_allow_html=True)
@@ -603,11 +594,11 @@ with col_r:
                 st.session_state.result = warped
                 st.session_state.gen_error = None
 
-            # Step 2 — Gemini analysis (only if key provided)
-            if st.session_state.gemini_key:
+            # Step 2 — Gemini analysis (only if secret is configured)
+            if _GEMINI_KEY:
                 with st.spinner("🔬 Gemini AI анализ лица…"):
                     analysis, aerr = analyze_face(
-                        st.session_state.gemini_key,
+                        _GEMINI_KEY,
                         st.session_state.orig_bytes,
                     )
                 if aerr:
@@ -618,7 +609,7 @@ with col_r:
                     st.session_state.analysis_error = None
                     st.success("✅ Готово!", icon="✅")
             else:
-                st.success("✅ Деформация применена! Введите Gemini API ключ для AI-анализа.", icon="✅")
+                st.success("✅ Деформация применена!", icon="✅")
 
     # ── Reset handler ──
     if do_rst:
