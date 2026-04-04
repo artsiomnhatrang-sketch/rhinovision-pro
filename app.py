@@ -162,7 +162,7 @@ st.markdown("""
     <div class="rv-tagline">Профессиональный симулятор ринопластики для пластических хирургов</div>
   </div>
   <div class="rv-ai-badge">⚡ Gemini AI Pipeline</div>
-  <div class="rv-version">v3.0 · AI</div>
+  <div class="rv-version">v3.1 · FLUX</div>
 </div>
 """, unsafe_allow_html=True)
 
