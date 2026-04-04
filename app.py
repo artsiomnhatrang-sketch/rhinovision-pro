@@ -5,6 +5,7 @@ import io
 import base64
 import json
 import re
+import urllib.request
 
 # ─── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -170,7 +171,8 @@ _DEFAULTS = {
     "orig": None, "orig_bytes": None, "result": None,
     "analysis": None, "rc": 0, "last_name": "",
     "patient_name": "", "annotations": [],
-    "gemini_key": "", "gen_error": None, "analysis_error": None,
+    "gemini_key": "", "replicate_token": "",
+    "gen_error": None, "analysis_error": None,
 }
 for k, v in _DEFAULTS.items():
     if k not in st.session_state:
@@ -334,15 +336,16 @@ def _intensity(pct):
     if pct < 55: return "moderately"
     return "significantly"
 
-def build_generation_prompt(params):
+def build_flux_prompt(params, analysis=None):
+    """Build img2img prompt for FLUX Schnell rhinoplasty simulation."""
     changes = []
     specs = [
-        ("hump",          50, "reduce the dorsal nasal hump",        "increase the dorsal bridge height"),
-        ("tip_proj",      50, "deproject the nasal tip",             "increase nasal tip projection"),
-        ("nose_width",    50, "narrow the nasal bridge",             "widen the nasal bridge"),
-        ("nostril_width", 50, "reduce the nostril width",            "increase the nostril width"),
-        ("tip_angle",     30, "rotate the nasal tip downward",       "rotate the nasal tip upward"),
-        ("nose_length",   50, "shorten the nose vertically",         "elongate the nose vertically"),
+        ("hump",          50, "reduced dorsal nasal hump",      "heightened nasal bridge"),
+        ("tip_proj",      50, "deprojected nasal tip",          "more projected nasal tip"),
+        ("nose_width",    50, "narrower nasal bridge",          "wider nasal bridge"),
+        ("nostril_width", 50, "smaller nostrils",               "larger nostrils"),
+        ("tip_angle",     30, "downward-rotated nasal tip",     "upward-rotated nasal tip"),
+        ("nose_length",   50, "shorter nose",                   "elongated nose"),
     ]
     for key, mx, down_desc, up_desc in specs:
         v = params[key]
@@ -350,29 +353,123 @@ def build_generation_prompt(params):
             continue
         p = _pct(v, mx)
         desc = down_desc if v < 0 else up_desc
-        changes.append(f"{_intensity(p)} {desc} by approximately {p}%")
+        changes.append(f"{_intensity(p)} {desc}")
 
-    if not changes:
-        mod_text = "Keep the nose exactly as is — reproduce the photo faithfully."
+    # Incorporate Gemini analysis for more accurate face description
+    face_desc = ""
+    if analysis:
+        face = analysis.get("face", {})
+        parts = []
+        if face.get("skin_tone"):    parts.append(f"{face['skin_tone']} skin tone")
+        if face.get("face_shape"):   parts.append(f"{face['face_shape']} face shape")
+        if face.get("estimated_age"): parts.append(f"{face['estimated_age']} years old")
+        if parts:
+            face_desc = ", ".join(parts) + ", "
+
+    nose_desc = ", ".join(changes) if changes else "unchanged natural nose"
+    return (
+        f"Photorealistic medical portrait, {face_desc}same person, "
+        f"post-rhinoplasty simulation with {nose_desc}. "
+        f"Professional clinical photograph, identical lighting and background, "
+        f"natural skin texture, highly detailed, photographic quality."
+    )
+
+
+def _flux_strength(params):
+    """Compute prompt_strength from slider magnitudes. Range: 0.45–0.75."""
+    magnitudes = [
+        abs(params["hump"])          / 50,
+        abs(params["tip_proj"])      / 50,
+        abs(params["nose_width"])    / 50,
+        abs(params["nostril_width"]) / 50,
+        abs(params["tip_angle"])     / 30,
+        abs(params["nose_length"])   / 50,
+    ]
+    avg = sum(magnitudes) / len(magnitudes)
+    return round(0.45 + avg * 0.30, 2)
+
+
+def _read_replicate_output(output):
+    """Robustly extract raw image bytes from any Replicate output shape."""
+    # Materialise iterators/generators without consuming twice
+    if hasattr(output, '__iter__') and not isinstance(output, (str, bytes)):
+        items = list(output)
     else:
-        mod_text = "; ".join(changes) + "."
+        items = [output]
 
-    return f"""You are assisting a plastic surgeon with a rhinoplasty simulation for patient consultation.
+    for item in items:
+        if item is None:
+            continue
+        # FileOutput.read() — newest SDK
+        if hasattr(item, 'read'):
+            data = item.read()
+            if data:
+                return bytes(data)
+        # FileOutput.url or plain URL string
+        url = None
+        if hasattr(item, 'url'):
+            url = str(item.url)
+        elif isinstance(item, str) and item.startswith("http"):
+            url = item
+        if url:
+            try:
+                with urllib.request.urlopen(url, timeout=60) as r:
+                    return r.read()
+            except Exception:
+                continue
+        # Raw bytes
+        if isinstance(item, (bytes, bytearray)):
+            return bytes(item)
+    return None
 
-Task: Generate a photorealistic modified version of this facial photo with the following nasal changes:
-{mod_text}
 
-Strict requirements:
-- Modify ONLY the nose — preserve all other features identically: eyes, lips, brows, skin tone, hair, face shape, expression
-- Maintain exact same lighting, background, camera angle, skin texture, and photo quality
-- The result must look like a real post-operative photo, not a drawing or digital art
-- No watermarks, no overlays, no added text
-- Output a single photorealistic face photograph"""
+def _classify_replicate_error(err_str):
+    e = err_str.lower()
+    if "401" in e or "invalid token" in e or "unauthorized" in e or "authentication" in e:
+        return "Неверный Replicate токен. Проверьте токен на replicate.com/account/api-tokens"
+    if "402" in e or "payment" in e or "billing" in e:
+        return "Требуется оплата Replicate. Пополните баланс на replicate.com/account/billing"
+    if "429" in e or "rate limit" in e or "too many" in e:
+        return "Превышен лимит запросов Replicate. Подождите немного и повторите."
+    if "nsfw" in e or "safety" in e or "content" in e:
+        return "Контент заблокирован фильтром безопасности. Используйте другое фото."
+    if "timeout" in e or "timed out" in e:
+        return "Таймаут Replicate. Попробуйте снова."
+    if "model" in e and ("not found" in e or "doesn't exist" in e):
+        return "Модель FLUX не найдена. Проверьте подключение."
+    return f"Ошибка Replicate: {err_str[:200]}"
 
 
-def _gemini_client(api_key):
-    from google import genai
-    return genai.Client(api_key=api_key)
+def generate_with_replicate(rep_token, img_bytes, params, analysis=None):
+    """Phase 2 — img2img with Replicate FLUX Schnell."""
+    try:
+        import replicate as rep_lib
+
+        client = rep_lib.Client(api_token=rep_token)
+        prompt = build_flux_prompt(params, analysis)
+        strength = _flux_strength(params)
+
+        output = client.run(
+            "black-forest-labs/flux-schnell",
+            input={
+                "prompt": prompt,
+                "image": io.BytesIO(img_bytes),
+                "prompt_strength": strength,
+                "num_outputs": 1,
+                "num_inference_steps": 4,
+                "output_format": "jpg",
+                "output_quality": 90,
+                "go_fast": True,
+            },
+        )
+
+        data = _read_replicate_output(output)
+        if not data:
+            return None, "Replicate не вернул изображение. Попробуйте снова."
+        return Image.open(io.BytesIO(data)).convert("RGB"), None
+
+    except Exception as e:
+        return None, _classify_replicate_error(str(e))
 
 
 def _parse_json_response(text):
@@ -412,47 +509,6 @@ def analyze_face(api_key, img_bytes):
         return _parse_json_response(response.text), None
     except json.JSONDecodeError:
         return None, "Gemini вернул неверный JSON. Повторите запрос."
-    except Exception as e:
-        return None, _classify_error(str(e))
-
-
-def generate_modified_image(api_key, img_bytes, params):
-    """Phase 2 — img2img generation with gemini-2.0-flash-exp-image-generation."""
-    try:
-        from google import genai
-        from google.genai import types
-
-        client = genai.Client(api_key=api_key)
-        prompt = build_generation_prompt(params)
-
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-exp-image-generation",
-            contents=[
-                types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"),
-                prompt,
-            ],
-            config=types.GenerateContentConfig(
-                response_modalities=["IMAGE", "TEXT"],
-            ),
-        )
-
-        if not response.candidates:
-            return None, "Gemini не вернул результат. Попробуйте снова."
-
-        for part in response.candidates[0].content.parts:
-            if not hasattr(part, "inline_data") or part.inline_data is None:
-                continue
-            mime = part.inline_data.mime_type or ""
-            if "image" not in mime:
-                continue
-            raw = part.inline_data.data
-            # SDK may return bytes or base64 str depending on version
-            if isinstance(raw, str):
-                raw = base64.b64decode(raw)
-            return Image.open(io.BytesIO(raw)).convert("RGB"), None
-
-        return None, "Gemini не включил изображение в ответ. Попробуйте ещё раз."
-
     except Exception as e:
         return None, _classify_error(str(e))
 
@@ -585,22 +641,42 @@ with col_l:
 
 # ══════════ RIGHT — controls ══════════
 with col_r:
-    # ── API key ──
-    st.markdown('<div class="rv-card-title">🔑 Gemini API</div>', unsafe_allow_html=True)
-    api_key_input = st.text_input(
-        "Gemini API Key",
-        type="password",
-        value=st.session_state.gemini_key,
-        placeholder="AIza... (получите на aistudio.google.com)",
-        help="Бесплатный ключ на aistudio.google.com → Get API Key",
-        key=f"apikey_{st.session_state.rc}",
-    )
-    st.session_state.gemini_key = api_key_input
-    if api_key_input:
-        st.markdown('<div class="rv-status rv-status-ready">⚡ API ключ введён — готов к работе</div>',
+    # ── API keys ──
+    st.markdown('<div class="rv-card-title">🔑 API Ключи</div>', unsafe_allow_html=True)
+    key_col1, key_col2 = st.columns(2)
+    with key_col1:
+        gemini_input = st.text_input(
+            "Gemini API Key (анализ лица)",
+            type="password",
+            value=st.session_state.gemini_key,
+            placeholder="AIza...",
+            help="Бесплатно на aistudio.google.com → Get API Key",
+            key=f"apikey_{st.session_state.rc}",
+        )
+        st.session_state.gemini_key = gemini_input
+    with key_col2:
+        rep_input = st.text_input(
+            "Replicate Token (генерация FLUX)",
+            type="password",
+            value=st.session_state.replicate_token,
+            placeholder="r8_...",
+            help="Получите на replicate.com/account/api-tokens",
+            key=f"reptoken_{st.session_state.rc}",
+        )
+        st.session_state.replicate_token = rep_input
+
+    _both = gemini_input and rep_input
+    if _both:
+        st.markdown('<div class="rv-status rv-status-ready">⚡ Оба ключа введены — готов к работе</div>',
+                    unsafe_allow_html=True)
+    elif gemini_input and not rep_input:
+        st.markdown('<div class="rv-status rv-status-nokey">⚠ Введите Replicate токен для генерации (r8_...)</div>',
+                    unsafe_allow_html=True)
+    elif rep_input and not gemini_input:
+        st.markdown('<div class="rv-status rv-status-nokey">⚠ Введите Gemini ключ для анализа лица (AIza...)</div>',
                     unsafe_allow_html=True)
     else:
-        st.markdown('<div class="rv-status rv-status-nokey">⚠ Введите Gemini API ключ для активации AI</div>',
+        st.markdown('<div class="rv-status rv-status-nokey">⚠ Введите оба ключа для активации AI</div>',
                     unsafe_allow_html=True)
 
     st.divider()
@@ -636,22 +712,27 @@ with col_r:
         if st.session_state.orig is None:
             st.warning("Сначала загрузите фото пациента.")
         elif not st.session_state.gemini_key:
-            st.warning("Введите Gemini API ключ.")
+            st.warning("Введите Gemini API ключ для анализа лица.")
+        elif not st.session_state.replicate_token:
+            st.warning("Введите Replicate токен для генерации изображения.")
         else:
             img_bytes = st.session_state.orig_bytes
 
-            with st.spinner("🔬 Фаза 1 — AI анализ лица…"):
+            # Phase 1 — Gemini vision analysis
+            with st.spinner("🔬 Фаза 1 — Gemini анализ лица…"):
                 analysis, aerr = analyze_face(st.session_state.gemini_key, img_bytes)
             if aerr:
                 st.error(f"Анализ: {aerr}")
                 st.session_state.analysis_error = aerr
+                analysis = None
             else:
                 st.session_state.analysis = analysis
                 st.session_state.analysis_error = None
 
-            with st.spinner("🎨 Фаза 2 — AI генерация (10–30 сек)…"):
-                result_img, gerr = generate_modified_image(
-                    st.session_state.gemini_key, img_bytes, params
+            # Phase 2 — Replicate FLUX Schnell img2img
+            with st.spinner("🎨 Фаза 2 — FLUX Schnell генерация (15–30 сек)…"):
+                result_img, gerr = generate_with_replicate(
+                    st.session_state.replicate_token, img_bytes, params, analysis
                 )
             if gerr:
                 st.error(f"Генерация: {gerr}")
