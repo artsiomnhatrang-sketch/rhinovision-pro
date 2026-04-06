@@ -18,104 +18,297 @@ st.set_page_config(
 # ─── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap');
+
 html, body, [class*="css"] {
-    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
-[data-testid="stAppViewContainer"] > .main { background: #f0f4f8; }
+
+/* ── Base ── */
+[data-testid="stAppViewContainer"] > .main {
+    background: #0a0a0a;
+}
 [data-testid="stHeader"] { background: transparent !important; }
-.block-container { padding: 0 2rem 2rem !important; max-width: 1440px !important; }
+.block-container { padding: 0 2rem 3rem !important; max-width: 1440px !important; }
 section[data-testid="stSidebar"] { display: none !important; }
 
-/* Header */
+/* ── Header ── */
 .rv-header {
-    background: #1a2b4a; padding: 0 2rem;
-    margin: 0 -2rem 0 -2rem; height: 64px;
-    display: flex; align-items: center; gap: 1rem;
+    background: rgba(20,20,20,0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 0 2rem;
+    margin: 0 -2rem 2rem -2rem;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 .rv-logo {
-    width: 38px; height: 38px; background: #0066cc;
-    border-radius: 8px; display: flex; align-items: center;
-    justify-content: center; font-size: 0.95rem; font-weight: 900;
-    color: white; letter-spacing: -1px; flex-shrink: 0;
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, #f4672a 0%, #e04a0f 100%);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; font-weight: 900; color: white;
+    letter-spacing: -1px; flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(244,103,42,0.35);
 }
 .rv-brand { display: flex; flex-direction: column; }
-.rv-name { font-size: 1.15rem; font-weight: 800; color: #fff; letter-spacing: -0.3px; line-height: 1.1; }
-.rv-name span { color: #60a5fa; }
-.rv-tagline { font-size: 0.72rem; color: #94a3b8; margin-top: 1px; }
+.rv-name {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 1.05rem; font-weight: 700;
+    color: #e8e8e8; letter-spacing: -0.3px; line-height: 1.15;
+}
+.rv-name span { color: #f4672a; }
+.rv-tagline { font-size: 0.7rem; color: #555; margin-top: 2px; }
 .rv-badge {
-    font-size: 0.65rem; color: #34d399;
-    background: rgba(52,211,153,0.15); padding: 3px 10px;
-    border-radius: 20px; border: 1px solid rgba(52,211,153,0.3);
+    font-size: 0.65rem; font-weight: 700;
+    color: #f4672a;
+    background: rgba(244,103,42,0.12);
+    padding: 4px 12px;
+    border-radius: 100px;
+    border: 1px solid rgba(244,103,42,0.35);
+    letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 5px;
+}
+.rv-badge::before {
+    content: "";
+    display: block; width: 6px; height: 6px;
+    background: #f4672a; border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.6); opacity: 0.35; }
 }
 .rv-version {
-    margin-left: auto; font-size: 0.65rem; color: #64748b;
-    background: #243350; padding: 3px 10px; border-radius: 20px;
+    margin-left: auto;
+    font-size: 0.65rem; color: #444;
+    background: #141414;
+    padding: 4px 12px; border-radius: 100px;
+    border: 1px solid rgba(255,255,255,0.07);
 }
 
-/* Section titles */
+/* ── Section titles ── */
 .rv-card-title {
-    font-size: 0.65rem; font-weight: 700; color: #1a2b4a;
-    text-transform: uppercase; letter-spacing: 1.3px;
-    margin-bottom: 0.9rem; padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e8edf2;
-    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.6rem; font-weight: 700; color: #888;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    margin-bottom: 1rem; padding-bottom: 0.6rem;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex; align-items: center; gap: 0.5rem;
 }
 .rv-card-title::before {
-    content: ""; display: block; width: 3px; height: 13px;
-    background: #0066cc; border-radius: 2px;
+    content: "";
+    display: block; width: 3px; height: 14px;
+    background: linear-gradient(180deg, #f4672a 0%, #e04a0f 100%);
+    border-radius: 2px;
 }
 
-/* Status badges */
+/* ── Cards ── */
+.rv-card {
+    background: #141414;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 1.5rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.rv-card:hover {
+    border-color: rgba(244,103,42,0.25);
+    box-shadow: 0 8px 32px rgba(244,103,42,0.08);
+}
+
+/* ── Status badges ── */
 .rv-status {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 0.75rem; padding: 4px 12px; border-radius: 20px;
-    margin: 0.25rem 0 0.5rem;
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 0.75rem; font-weight: 600;
+    padding: 5px 14px; border-radius: 100px;
+    margin: 0.25rem 0 0.75rem;
 }
-.rv-status-ready  { background: rgba(52,211,153,0.1); color: #059669; border: 1px solid rgba(52,211,153,0.3); }
-.rv-status-nokey  { background: rgba(245,158,11,0.1);  color: #b45309; border: 1px solid rgba(245,158,11,0.3); }
-.rv-status-error  { background: rgba(239,68,68,0.1);   color: #dc2626; border: 1px solid rgba(239,68,68,0.3); }
+.rv-status-ready  { background: rgba(52,211,153,0.08); color: #34d399; border: 1px solid rgba(52,211,153,0.25); }
+.rv-status-nokey  { background: rgba(244,103,42,0.08); color: #f4672a; border: 1px solid rgba(244,103,42,0.25); }
+.rv-status-error  { background: rgba(239,68,68,0.08);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
 
-/* Empty photo state */
+/* ── Empty photo state ── */
 .rv-empty {
-    background: #f8fafc; border: 2px dashed #cbd5e1;
-    border-radius: 12px; padding: 3rem 2rem; text-align: center;
-    color: #64748b; margin-top: 0.5rem;
+    background: #111;
+    border: 2px dashed rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 3.5rem 2rem;
+    text-align: center;
+    color: #555;
+    margin-top: 0.5rem;
+    transition: border-color 0.2s;
 }
-.rv-empty-icon { font-size: 2.2rem; margin-bottom: 0.5rem; }
-.rv-empty-text  { font-size: 0.82rem; line-height: 1.6; }
+.rv-empty:hover { border-color: rgba(244,103,42,0.3); }
+.rv-empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.6; }
+.rv-empty-text { font-size: 0.85rem; line-height: 1.7; color: #555; }
 
-/* Analysis grid */
-.rv-analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem; }
-.rv-analysis-card { background: #f8fafc; border: 1px solid #e8edf2; border-radius: 8px; padding: 0.75rem 1rem; }
-.rv-analysis-card h4 { font-size: 0.63rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 0.5rem 0; }
-.rv-metric { display: flex; justify-content: space-between; font-size: 0.78rem; padding: 3px 0; border-bottom: 1px solid #f1f5f9; }
+/* ── Analysis grid ── */
+.rv-analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+.rv-analysis-card {
+    background: #0f0f0f;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+}
+.rv-analysis-card h4 {
+    font-size: 0.58rem; font-weight: 700; color: #f4672a;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    margin: 0 0 0.75rem 0;
+}
+.rv-metric {
+    display: flex; justify-content: space-between;
+    font-size: 0.8rem; padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
 .rv-metric:last-child { border-bottom: none; }
-.rv-metric-key { color: #64748b; }
-.rv-metric-val { color: #1a2b4a; font-weight: 600; }
+.rv-metric-key { color: #555; }
+.rv-metric-val { color: #e8e8e8; font-weight: 600; }
 .rv-surgical-note {
-    background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
-    padding: 0.75rem 1rem; margin-top: 0.75rem;
-    font-size: 0.82rem; color: #1e40af; grid-column: 1 / -1; line-height: 1.5;
+    background: rgba(244,103,42,0.07);
+    border: 1px solid rgba(244,103,42,0.2);
+    border-radius: 10px;
+    padding: 0.875rem 1.25rem;
+    margin-top: 0;
+    font-size: 0.83rem; color: #ccc; line-height: 1.6;
+    grid-column: 1 / -1;
+}
+.rv-surgical-note strong { color: #f4672a; }
+
+/* ── Streamlit buttons ── */
+.stButton > button {
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.2px !important;
+    transition: all 0.2s !important;
+}
+[data-testid="stBaseButton-primary"] {
+    background: linear-gradient(135deg, #f4672a 0%, #e04a0f 100%) !important;
+    border: none !important;
+    color: #fff !important;
+    box-shadow: 0 4px 20px rgba(244,103,42,0.3) !important;
+}
+[data-testid="stBaseButton-primary"]:hover {
+    opacity: 0.88 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 28px rgba(244,103,42,0.45) !important;
+}
+[data-testid="stBaseButton-secondary"] {
+    background: transparent !important;
+    border: 1.5px solid rgba(255,255,255,0.15) !important;
+    color: #888 !important;
+}
+[data-testid="stBaseButton-secondary"]:hover {
+    border-color: rgba(244,103,42,0.5) !important;
+    color: #f4672a !important;
+    background: rgba(244,103,42,0.06) !important;
+}
+[data-testid="stDownloadButton"] > button {
+    background: linear-gradient(135deg, #f4672a 0%, #e04a0f 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 20px rgba(244,103,42,0.3) !important;
+}
+[data-testid="stDownloadButton"] > button:hover {
+    opacity: 0.88 !important;
+    transform: translateY(-2px) !important;
 }
 
-/* Buttons */
-.stButton > button { border-radius: 8px !important; font-weight: 600 !important; font-size: 0.85rem !important; }
-[data-testid="stBaseButton-primary"] { background: #0066cc !important; border: none !important; }
-[data-testid="stBaseButton-primary"]:hover { background: #0052a3 !important; box-shadow: 0 4px 14px rgba(0,102,204,0.35) !important; }
-[data-testid="stDownloadButton"] > button { background: #16a34a !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: 600 !important; }
+/* ── Inputs ── */
+[data-testid="stTextInput"] input {
+    border-radius: 8px !important;
+    border-color: rgba(255,255,255,0.1) !important;
+    background: #111 !important;
+    color: #e8e8e8 !important;
+    font-size: 0.88rem !important;
+}
+[data-testid="stTextInput"] input:focus {
+    border-color: #f4672a !important;
+    box-shadow: 0 0 0 3px rgba(244,103,42,0.15) !important;
+}
+[data-testid="stTextInput"] input::placeholder { color: #444 !important; }
 
-/* Inputs */
-[data-testid="stTextInput"] input { border-radius: 8px !important; border-color: #cbd5e1 !important; font-size: 0.88rem !important; }
-[data-testid="stTextInput"] input:focus { border-color: #0066cc !important; box-shadow: 0 0 0 3px rgba(0,102,204,0.15) !important; }
-[data-testid="stFileUploader"] { border: 2px dashed #bfdbfe !important; border-radius: 10px !important; background: #eff6ff !important; }
-[data-testid="stSlider"] [role="slider"] { background: #0066cc !important; border-color: #0066cc !important; }
+/* ── File uploader ── */
+[data-testid="stFileUploader"] {
+    border: 2px dashed rgba(244,103,42,0.25) !important;
+    border-radius: 12px !important;
+    background: rgba(244,103,42,0.04) !important;
+}
+[data-testid="stFileUploader"]:hover {
+    border-color: rgba(244,103,42,0.5) !important;
+    background: rgba(244,103,42,0.07) !important;
+}
 
-/* Disclaimer */
+/* ── Sliders ── */
+[data-testid="stSlider"] [role="slider"] {
+    background: #f4672a !important;
+    border-color: #f4672a !important;
+    box-shadow: 0 0 0 4px rgba(244,103,42,0.2) !important;
+}
+[data-testid="stSlider"] > div > div > div > div {
+    background: linear-gradient(90deg, #f4672a, #e04a0f) !important;
+}
+
+/* ── Divider ── */
+hr {
+    border: none !important;
+    border-top: 1px solid rgba(255,255,255,0.07) !important;
+    margin: 1.5rem 0 !important;
+}
+
+/* ── Select slider / radio ── */
+[data-testid="stRadio"] label { color: #888 !important; font-size: 0.83rem !important; }
+[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p { font-size: 0.83rem !important; }
+
+/* ── Labels ── */
+label[data-testid="stWidgetLabel"] p { color: #888 !important; font-size: 0.8rem !important; }
+
+/* ── Warning / Success ── */
+[data-testid="stAlert"] {
+    border-radius: 10px !important;
+    border-left-width: 3px !important;
+}
+
+/* ── Expander ── */
+[data-testid="stExpander"] {
+    background: #141414 !important;
+    border: 1px solid rgba(255,255,255,0.07) !important;
+    border-radius: 12px !important;
+}
+[data-testid="stExpander"] summary {
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    color: #e8e8e8 !important;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #f4672a; }
+
+/* ── Disclaimer ── */
 .rv-disclaimer {
-    font-size: 0.66rem; color: #94a3b8; line-height: 1.7;
-    text-align: center; padding: 1rem 3rem; background: #f8fafc;
-    border-radius: 10px; border-top: 2px solid #e8edf2; margin-top: 1.5rem;
+    font-size: 0.67rem; color: #444; line-height: 1.8;
+    text-align: center; padding: 1.25rem 3rem;
+    background: #111;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+    margin-top: 2rem;
 }
+.rv-disclaimer strong { color: #666; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -127,7 +320,7 @@ st.markdown("""
     <div class="rv-name">RhinoVision <span>Pro</span></div>
     <div class="rv-tagline">Профессиональный симулятор ринопластики · AI-анализ + PIL деформация</div>
   </div>
-  <div class="rv-badge">⚡ Gemini AI</div>
+  <div class="rv-badge">Gemini AI</div>
   <div class="rv-version">v4.1 · Secrets</div>
 </div>
 """, unsafe_allow_html=True)
@@ -143,9 +336,7 @@ for k, v in _DEFAULTS.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# ─── Gemini key from Streamlit secrets (never from UI) ────────────────────────
-# st.secrets raises StreamlitSecretNotFoundError locally without secrets.toml,
-# so always wrap in try/except — safe in all environments.
+# ─── Gemini key from Streamlit secrets ────────────────────────────────────────
 try:
     _GEMINI_KEY = st.secrets["GEMINI_API_KEY"]
 except Exception:
@@ -186,7 +377,7 @@ def apply_annotations(base_img, annotations):
     draw = ImageDraw.Draw(out)
     w, h = out.size
     for ann in annotations:
-        color = ann.get("color", "#FF3333")
+        color = ann.get("color", "#f4672a")
         thick = ann.get("thick", 3)
         kind  = ann.get("kind",  "circle")
         cx    = int(w * ann["rx"])
@@ -208,29 +399,39 @@ def comparison_slider(before_img, after_img, height=420):
     html = f"""
 <style>
 .cmp-wrap {{
-  position:relative;width:100%;max-width:780px;height:{height}px;
-  overflow:hidden;border-radius:12px;border:1px solid #e8edf2;
-  user-select:none;cursor:col-resize;box-shadow:0 4px 16px rgba(0,0,0,.10);
+  position:relative;width:100%;max-width:800px;height:{height}px;
+  overflow:hidden;border-radius:14px;
+  border:1px solid rgba(255,255,255,0.07);
+  user-select:none;cursor:col-resize;
+  box-shadow:0 8px 40px rgba(0,0,0,0.6);
+  background:#0a0a0a;
 }}
 .cmp-wrap img {{
   position:absolute;top:0;left:0;width:100%;height:100%;
   object-fit:cover;pointer-events:none;display:block;
 }}
 .cmp-after {{ clip-path:inset(0 0 0 50%); }}
-.cmp-divider {{ position:absolute;top:0;left:50%;width:2px;height:100%;background:#fff;box-shadow:0 0 6px rgba(0,0,0,.4);pointer-events:none; }}
+.cmp-divider {{
+  position:absolute;top:0;left:50%;width:2px;height:100%;
+  background:linear-gradient(180deg,#f4672a,#e04a0f);
+  box-shadow:0 0 12px rgba(244,103,42,0.6);
+  pointer-events:none;
+}}
 .cmp-handle {{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:44px;height:44px;border-radius:50%;background:#fff;
-  box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;align-items:center;
-  justify-content:center;font-size:1.1rem;pointer-events:none;
+  width:46px;height:46px;border-radius:50%;
+  background:linear-gradient(135deg,#f4672a,#e04a0f);
+  box-shadow:0 4px 20px rgba(244,103,42,0.5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;color:white;pointer-events:none;
 }}
 .cmp-label {{
-  position:absolute;top:12px;font-size:.65rem;font-weight:700;
-  letter-spacing:1px;text-transform:uppercase;
-  padding:3px 10px;border-radius:20px;pointer-events:none;
+  position:absolute;top:14px;font-size:.62rem;font-weight:700;
+  letter-spacing:1.2px;text-transform:uppercase;
+  padding:4px 12px;border-radius:100px;pointer-events:none;
 }}
-.cmp-before-lbl {{ left:12px;background:rgba(0,0,0,.45);color:#e5e7eb; }}
-.cmp-after-lbl  {{ right:12px;background:rgba(0,102,204,.75);color:#fff; }}
+.cmp-before-lbl {{ left:14px;background:rgba(0,0,0,0.6);color:#888;border:1px solid rgba(255,255,255,0.1); }}
+.cmp-after-lbl  {{ right:14px;background:rgba(244,103,42,0.85);color:#fff; }}
 </style>
 <div class="cmp-wrap" id="cmp">
   <img src="data:image/jpeg;base64,{b64b}"/>
@@ -274,18 +475,12 @@ def comparison_slider(before_img, after_img, height=420):
 # ─── Nose warp (PIL + NumPy, no OpenCV) ───────────────────────────────────────
 
 def warp_nose(img, params):
-    """
-    Gaussian displacement-field rhinoplasty simulation.
-    Pure numpy bilinear interpolation — no external C libraries required.
-    """
     arr = np.array(img, dtype=np.float32)
     h, w = arr.shape[:2]
 
-    # Coordinate grids
     xx = np.tile(np.arange(w, dtype=np.float32), (h, 1))
     yy = np.tile(np.arange(h, dtype=np.float32).reshape(-1, 1), (1, w))
 
-    # Nose centre and radii (frontal portrait heuristics)
     cx, cy = w * 0.50, h * 0.43
     sx, sy = w * 0.15, h * 0.18
 
@@ -298,23 +493,14 @@ def warp_nose(img, params):
     g_tip     = G(cx, cy + sy*.65,  sx*.50,   sy*.45  )
     g_nostril = G(cx, cy + sy*.95,  sx*.75,   sy*.30  )
 
-    # Map starts as identity
     mx = xx.copy()
     my = yy.copy()
 
-    # Dorsal hump — vertical displacement of bridge
     my -= params["hump"] * 0.55 * g_bridge
-
-    # Tip projection — subtle lateral spread / retraction of tip
     mx -= params["tip_proj"] * 0.50 * g_tip
-
-    # Nose width — lateral scaling of full nose
     mx -= params["nose_width"] * 0.030 * (xx - cx) * g_full
-
-    # Nostril width — lateral scaling of nostril zone
     mx -= params["nostril_width"] * 0.042 * (xx - cx) * g_nostril
 
-    # Tip angle — local rotation around tip centre
     if params["tip_angle"] != 0:
         angle  = np.radians(params["tip_angle"] * 0.70)
         tx = xx - cx
@@ -322,14 +508,11 @@ def warp_nose(img, params):
         mx -= (np.cos(angle)*tx - np.sin(angle)*ty - tx) * g_tip
         my -= (np.sin(angle)*tx + np.cos(angle)*ty - ty) * g_tip
 
-    # Nose length — vertical scaling of full nose
     my -= params["nose_length"] * 0.030 * (yy - cy) * g_full
 
-    # Clamp to valid pixel range
     mx = np.clip(mx, 0, w - 1)
     my = np.clip(my, 0, h - 1)
 
-    # Bilinear interpolation
     x0 = np.floor(mx).astype(np.int32)
     y0 = np.floor(my).astype(np.int32)
     x1 = np.minimum(x0 + 1, w - 1)
@@ -344,7 +527,7 @@ def warp_nose(img, params):
 
     return Image.fromarray(out)
 
-# ─── Gemini face analysis (text-only, no image generation) ────────────────────
+# ─── Gemini face analysis ──────────────────────────────────────────────────────
 
 _ANALYSIS_PROMPT = """You are a rhinoplasty planning assistant. Analyze this facial photograph and return ONLY a valid JSON object — no markdown, no extra text, no code fences.
 
@@ -399,7 +582,6 @@ def _gemini_error(err_str):
 
 
 def analyze_face(api_key, img_bytes):
-    """Send image to Gemini 2.0 Flash for text-only face analysis. Returns (dict, error_str)."""
     try:
         from google import genai
         from google.genai import types
@@ -465,7 +647,7 @@ def render_analysis(analysis):
 </div>""", unsafe_allow_html=True)
 
 # ─── Patient info bar ──────────────────────────────────────────────────────────
-st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top:1.5rem'></div>", unsafe_allow_html=True)
 pi1, pi2, pi3 = st.columns([4, 3, 3])
 with pi1:
     _pname = st.text_input("👤 Имя пациента",
@@ -511,7 +693,7 @@ with col_l:
 <div class="rv-empty">
   <div class="rv-empty-icon">📷</div>
   <div class="rv-empty-text">Загрузите фото пациента<br>
-    <span style="color:#94a3b8;font-size:.75rem">JPG · PNG · фронтальный вид</span>
+    <span style="color:#444;font-size:.75rem">JPG · PNG · фронтальный вид</span>
   </div>
 </div>""", unsafe_allow_html=True)
     else:
@@ -527,7 +709,7 @@ with col_l:
                                 horizontal=False, label_visibility="collapsed",
                                 key=f"ann_kind_{st.session_state.rc}")
         with tc2:
-            ann_color = st.color_picker("Цвет", "#FF3333",
+            ann_color = st.color_picker("Цвет", "#f4672a",
                                         key=f"ann_color_{st.session_state.rc}")
             ann_thick = st.select_slider("Толщина", [1, 2, 3, 5, 8], value=3,
                                          key=f"ann_thick_{st.session_state.rc}")
@@ -552,9 +734,12 @@ with col_l:
 # ═══════════════════ RIGHT — sliders + actions ════════════════════════════════
 with col_r:
 
-    # ── AI status (read-only, key comes from server secrets) ──
     if not _GEMINI_KEY:
-        st.warning("⚠️ API ключ не настроен. Обратитесь к администратору.")
+        st.markdown('<div class="rv-status rv-status-nokey">⚠ API ключ не настроен — только PIL-деформация</div>',
+                    unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="rv-status rv-status-ready">✓ Gemini AI активен</div>',
+                    unsafe_allow_html=True)
 
     # ── Rhinoplasty sliders ──
     st.markdown('<div class="rv-card-title">⚙️ Параметры ринопластики</div>', unsafe_allow_html=True)
@@ -587,14 +772,12 @@ with col_r:
         if st.session_state.orig is None:
             st.warning("Сначала загрузите фото пациента.")
         else:
-            # Step 1 — PIL+NumPy nose warp (always runs, no API needed)
             with st.spinner("🔧 Деформация носа (PIL + NumPy)…"):
                 warped = warp_nose(st.session_state.orig, params)
                 warped = apply_annotations(warped, st.session_state.annotations)
                 st.session_state.result = warped
                 st.session_state.gen_error = None
 
-            # Step 2 — Gemini analysis (only if secret is configured)
             if _GEMINI_KEY:
                 with st.spinner("🔬 Gemini AI анализ лица…"):
                     analysis, aerr = analyze_face(
@@ -607,9 +790,9 @@ with col_r:
                 else:
                     st.session_state.analysis = analysis
                     st.session_state.analysis_error = None
-                    st.success("✅ Готово!", icon="✅")
+                    st.success("✅ Готово!")
             else:
-                st.success("✅ Деформация применена!", icon="✅")
+                st.success("✅ Деформация применена!")
 
     # ── Reset handler ──
     if do_rst:
@@ -653,6 +836,6 @@ st.markdown("""
   RhinoVision Pro предназначен исключительно для иллюстративных целей и не является медицинским прогнозом.
   Результаты симуляции не гарантируют результатов хирургического вмешательства.
   AI-анализ носит справочный характер. Все клинические решения принимаются квалифицированным хирургом.<br>
-  <span style="color:#cbd5e1">© 2025 RhinoVision Pro &nbsp;·&nbsp; Только для медицинского персонала &nbsp;·&nbsp; v4.0 PIL+NumPy+Gemini</span>
+  <span style="color:#333">© 2025 RhinoVision Pro &nbsp;·&nbsp; Только для медицинского персонала &nbsp;·&nbsp; v4.1 PIL+NumPy+Gemini</span>
 </div>
 """, unsafe_allow_html=True)
